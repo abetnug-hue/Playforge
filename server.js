@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-const API_KEY = "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";
+const API_KEY = "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";
 
 app.get("/", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));
