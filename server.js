@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(express.static("public"));
 
 // 🔑 PUT YOUR NEW API KEY HERE
-const API_KEY = "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";
+const API_KEY = "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";
 
 // ✅ ROOT FIX (SERVES YOUR UI)
 app.get("/", (req, res) => {
