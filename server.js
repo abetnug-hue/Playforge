@@ -9,14 +9,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// 🔑 PUT YOUR API KEY HERE
+// 🔑 PUT YOUR NEW API KEY HERE
 const API_KEY = "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";
 
-// ✅ ROOT FIX (VERY IMPORTANT FOR RAILWAY)
+// ✅ ROOT FIX (SERVES YOUR UI)
 app.get("/", (req, res) => {
     res.sendFile(path.resolve("public/index.html"));
 });
 
+// 🎮 GENERATE GAME
 app.post("/generate", async (req, res) => {
     const prompt = req.body.prompt;
 
@@ -30,30 +31,24 @@ app.post("/generate", async (req, res) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct",
+                model: "openai/gpt-3.5-turbo", // 🔥 safer model
                 messages: [
                     {
                         role: "system",
-                        content: `You are a professional game developer.
-
-Create a COMPLETE HTML5 canvas game.
-
-RULES:
-- MUST include <!DOCTYPE html>
-- MUST include <canvas>
-- MUST be playable immediately
-- Use images if possible
-- ONLY return HTML`
+                        content: `You are a pro game dev. Return ONLY a full HTML5 canvas game. No text.`
                     },
                     {
                         role: "user",
-                        content: `Game idea: ${prompt}`
+                        content: prompt
                     }
                 ]
             })
         });
 
         const data = await response.json();
+
+        console.log("AI RESPONSE:", JSON.stringify(data)); // 🔍 DEBUG
+
         html = data.choices?.[0]?.message?.content || "";
 
         // clean markdown
@@ -63,7 +58,7 @@ RULES:
         console.log("AI ERROR:", err);
     }
 
-    // 🔧 BASIC FIXES
+    // 🔧 FIXES
     if (html && !html.includes("<!DOCTYPE html>")) {
         html = "<!DOCTYPE html>" + html;
     }
@@ -72,62 +67,10 @@ RULES:
         html = html.replace("<body>", "<body><canvas id='c'></canvas>");
     }
 
-    // 🔥 AUTO INJECT ASSETS
-    if (html && html.includes("<script>")) {
-        html = html.replace("<script>", `
-<script>
-
-// 🔥 ASSETS
-const playerImg = new Image();
-playerImg.src = "/assets/player.png";
-
-const enemyImg = new Image();
-enemyImg.src = "/assets/enemy.png";
-
-const bgImg = new Image();
-bgImg.src = "/assets/bg.png";
-
-const coinImg = new Image();
-coinImg.src = "/assets/coin.png";
-
-// 🎮 GAME OBJECTS
-let player = {x:100,y:300,v:0};
-let enemy = {x:500,y:300};
-let coin = {x:650,y:200};
-
-`);
-    }
-
-    // 🔥 FORCE RENDER LOGIC
-    if (html && !html.includes("drawImage")) {
-        html = html.replace("function loop()", `
-function loop(){
-
-// background
-ctx.drawImage(bgImg, 0, 0, c.width, c.height);
-
-// physics
-player.v += 0.5;
-player.y += player.v;
-if(player.y > 300){ player.y = 300; player.v = 0; }
-
-// enemy move
-enemy.x -= 2;
-if(enemy.x < -50) enemy.x = 800;
-
-// coin float
-coin.y += Math.sin(Date.now()/200)*0.5;
-
-// draw
-ctx.drawImage(playerImg, player.x, player.y, 50, 50);
-ctx.drawImage(enemyImg, enemy.x, enemy.y, 50, 50);
-ctx.drawImage(coinImg, coin.x, coin.y, 30, 30);
-
-`);
-    }
-
-    // 🎮 FALLBACK GAME
+    // 🎮 FALLBACK GAME (IF AI FAILS)
     if (!html || !html.includes("<canvas")) {
+        console.log("⚠️ AI FAILED — USING FALLBACK");
+
         html = `
 <!DOCTYPE html>
 <html>
@@ -138,21 +81,7 @@ const c = document.getElementById("c");
 const ctx = c.getContext("2d");
 c.width=800;c.height=400;
 
-const playerImg = new Image();
-playerImg.src="/assets/player.png";
-
-const enemyImg = new Image();
-enemyImg.src="/assets/enemy.png";
-
-const coinImg = new Image();
-coinImg.src="/assets/coin.png";
-
-const bgImg = new Image();
-bgImg.src="/assets/bg.png";
-
 let player={x:100,y:300,v:0};
-let enemy={x:500,y:300};
-let coin={x:650,y:200};
 
 document.addEventListener("keydown",()=>player.v=-10);
 
@@ -161,14 +90,9 @@ player.v+=0.5;
 player.y+=player.v;
 if(player.y>300){player.y=300;player.v=0;}
 
-enemy.x-=2;
-if(enemy.x<-50)enemy.x=800;
-
 ctx.clearRect(0,0,800,400);
-ctx.drawImage(bgImg,0,0,800,400);
-ctx.drawImage(playerImg,player.x,player.y,50,50);
-ctx.drawImage(enemyImg,enemy.x,enemy.y,50,50);
-ctx.drawImage(coinImg,coin.x,coin.y,30,30);
+ctx.fillStyle="cyan";
+ctx.fillRect(player.x,player.y,50,50);
 
 requestAnimationFrame(loop);
 }
@@ -178,7 +102,12 @@ loop();
 </html>`;
     }
 
-    res.json({ html });
+    res.json({
+        html,
+        message: html.includes("<canvas")
+            ? "🤖 I cooked up something for you!"
+            : "⚠️ AI struggled… but I saved it 😤"
+    });
 });
 
 // 🔥 RAILWAY PORT FIX
