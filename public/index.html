@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PlayForge</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    color: white;
+    overflow: hidden;
+}
+
+/* 🤖 AI BACKGROUND */
+#aiBg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0,173,181,0.08), transparent 70%);
+    pointer-events: none;
+}
+
+.main { display: flex; height: 100vh; }
+
+.sidebar {
+    width: 260px;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid #1e293b;
+    padding: 20px;
+    animation: pulseGlow 4s infinite alternate;
+}
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 10px #00adb522; }
+    100% { box-shadow: 0 0 30px #00adb588; }
+}
+
+.logoBox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.logoBox img {
+    width: 42px;
+    height: 42px;
+    filter: drop-shadow(0 0 12px #00adb5);
+}
+
+.sidebar button {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.sidebar button:hover {
+    background: #00adb5;
+    color: black;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 0 15px #00adb5;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.top {
+    padding: 15px;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    gap: 10px;
+    background: rgba(2,6,23,0.6);
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #0f172a;
+    color: white;
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 10px #00adb5;
+}
+
+.btn {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #00adb5, #22d3ee);
+    color: black;
+    cursor: pointer;
+}
+
+.workspace {
+    display: flex;
+    flex: 1;
+    padding: 10px;
+    gap: 10px;
+}
+
+.editor { width: 50%; }
+.preview { width: 50%; }
+
+textarea {
+    width: 100%;
+    height: 100%;
+    background: #020617;
+    color: #00ff9d;
+    border-radius: 12px;
+    border: 1px solid #1e293b;
+    padding: 10px;
+    font-family: monospace;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    border: 1px solid #1e293b;
+    background: black;
+    transition: 0.3s;
+}
+
+/* 🔥 LOADING OVERLAY */
+#loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(2,6,23,0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.loaderBox {
+    text-align: center;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #1e293b;
+    border-top: 6px solid #00adb5;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: auto;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loaderBox p {
+    color: #00adb5;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🤖 AI BACKGROUND CANVAS -->
+<canvas id="aiBg"></canvas>
+
+<div class="main">
+
+    <div class="sidebar">
+        <div class="logoBox">
+            <img src="logo.png">
+            <h2>PlayForge</h2>
+        </div>
+
+        <button onclick="generate()">⚡ Generate</button>
+        <button onclick="runGame()">▶ Run</button>
+        <button onclick="downloadGame()">💾 Download</button>
+
+        <div id="aiMessage" style="
+        margin-top:20px;
+        padding:15px;
+        border-radius:12px;
+        background: rgba(0,173,181,0.08);
+        border: 1px solid #00adb5;
+        color:#00adb5;
+        font-size:14px;
+        min-height:70px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        ">
+        🤖 Ready when you are...
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="top">
+            <input id="prompt" placeholder="Create something insane...">
+            <button class="btn" onclick="generate()">Generate</button>
+        </div>
+
+        <div class="workspace">
+            <div class="editor">
+                <textarea id="code"></textarea>
+            </div>
+
+            <div class="preview">
+                <iframe id="game"></iframe>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="loading">
+    <div class="loaderBox">
+        <div class="spinner"></div>
+        <p>Forging your game...</p>
+    </div>
+</div>
+
+<script>
+
+// 🎮 background AI particles
+const bg = document.getElementById("aiBg");
+const ctx = bg.getContext("2d");
+
+function resize() {
+    bg.width = window.innerWidth;
+    bg.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+let particles = [];
+for (let i = 0; i < 80; i++) {
+    particles.push({
+        x: Math.random() * bg.width,
+        y: Math.random() * bg.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, bg.width, bg.height);
+    ctx.fillStyle = "#00adb5";
+
+    particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > bg.width) p.vx *= -1;
+        if (p.y < 0 || p.y > bg.height) p.vy *= -1;
+
+        ctx.fillRect(p.x, p.y, 2, 2);
+    });
+
+    requestAnimationFrame(draw);
+}
+draw();
+
+// ✨ typing effect
+function typeMessage(text) {
+    const el = document.getElementById("aiMessage");
+    el.innerText = "";
+    let i = 0;
+    function type() {
+        if (i < text.length) {
+            el.innerText += text.charAt(i);
+            i++;
+            setTimeout(type, 25);
+        }
+    }
+    type();
+}
+
+async function generate() {
+    const prompt = document.getElementById("prompt").value;
+    const msg = document.getElementById("aiMessage");
+
+    msg.innerText = "⚙️ forging your game...";
+    document.getElementById("loading").style.display = "flex";
+
+    try {
+        const res = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
+
+        const data = await res.json();
+
+        document.getElementById("code").value = data.html;
+        runGame();
+
+        if (data.message) typeMessage(data.message);
+
+    } catch (err) {
+        msg.innerText = "😭 something broke...";
+    }
+
+    document.getElementById("loading").style.display = "none";
+}
+
+function runGame() {
+    const frame = document.getElementById("game");
+    frame.style.opacity = 0;
+    setTimeout(() => {
+        frame.srcdoc = document.getElementById("code").value;
+        frame.style.opacity = 1;
+    }, 150);
+}
+
+function downloadGame() {
+    const code = document.getElementById("code").value;
+    const blob = new Blob([code], { type: "text/html" });
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "playforge_game.html";
+    a.click();
+}
+
+</script>
+
+</body>
+</html>
