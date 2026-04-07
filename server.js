@@ -1,6 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
 import cors from "cors";
+import path from "path";
 
 const app = express();
 
@@ -8,8 +9,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// 🔑 PUT YOUR API KEY HERE (regenerate if needed)
-const API_KEY = "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";
+// 🔑 PUT YOUR API KEY HERE
+const API_KEY = "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";
+
+// ✅ ROOT FIX (VERY IMPORTANT FOR RAILWAY)
+app.get("/", (req, res) => {
+    res.sendFile(path.resolve("public/index.html"));
+});
 
 app.post("/generate", async (req, res) => {
     const prompt = req.body.prompt;
@@ -71,7 +77,7 @@ RULES:
         html = html.replace("<script>", `
 <script>
 
-// 🔥 ASSETS (AUTO)
+// 🔥 ASSETS
 const playerImg = new Image();
 playerImg.src = "/assets/player.png";
 
@@ -84,10 +90,7 @@ bgImg.src = "/assets/bg.png";
 const coinImg = new Image();
 coinImg.src = "/assets/coin.png";
 
-const platformImg = new Image();
-platformImg.src = "/assets/platform.png";
-
-// 🎮 BASIC OBJECTS
+// 🎮 GAME OBJECTS
 let player = {x:100,y:300,v:0};
 let enemy = {x:500,y:300};
 let coin = {x:650,y:200};
@@ -95,27 +98,27 @@ let coin = {x:650,y:200};
 `);
     }
 
-    // 🔥 FORCE FULL GAME RENDER
+    // 🔥 FORCE RENDER LOGIC
     if (html && !html.includes("drawImage")) {
         html = html.replace("function loop()", `
 function loop(){
 
-// 🌄 background
+// background
 ctx.drawImage(bgImg, 0, 0, c.width, c.height);
 
-// 🧍 player physics
+// physics
 player.v += 0.5;
 player.y += player.v;
 if(player.y > 300){ player.y = 300; player.v = 0; }
 
-// 👾 enemy movement
+// enemy move
 enemy.x -= 2;
 if(enemy.x < -50) enemy.x = 800;
 
-// ⭐ coin float
+// coin float
 coin.y += Math.sin(Date.now()/200)*0.5;
 
-// 🎨 draw everything
+// draw
 ctx.drawImage(playerImg, player.x, player.y, 50, 50);
 ctx.drawImage(enemyImg, enemy.x, enemy.y, 50, 50);
 ctx.drawImage(coinImg, coin.x, coin.y, 30, 30);
@@ -123,7 +126,7 @@ ctx.drawImage(coinImg, coin.x, coin.y, 30, 30);
 `);
     }
 
-    // 🎮 FALLBACK GAME (FULL ASSETS)
+    // 🎮 FALLBACK GAME
     if (!html || !html.includes("<canvas")) {
         html = `
 <!DOCTYPE html>
@@ -178,6 +181,9 @@ loop();
     res.json({ html });
 });
 
-app.listen(3000, () => {
-    console.log("🔥 PlayForge running FULL ENGINE at http://localhost:3000");
+// 🔥 RAILWAY PORT FIX
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log("🔥 PlayForge running on port " + PORT);
 });
