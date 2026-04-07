@@ -9,15 +9,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// 🔑 USE RAILWAY VARIABLE
 const API_KEY = process.env.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;
 
-// 🌐 serve frontend
 app.get("/", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));
 });
 
-// 🎮 AI GENERATION
 app.post("/generate", async (req, res) => {
   const prompt = req.body.prompt;
 
@@ -35,7 +32,7 @@ app.post("/generate", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "You are a pro game dev. Return ONLY a complete HTML5 canvas game. No explanations."
+            content: "Return ONLY a full HTML5 canvas game."
           },
           {
             role: "user",
@@ -47,23 +44,18 @@ app.post("/generate", async (req, res) => {
 
     const data = await response.json();
 
-    console.log("AI RAW:", JSON.stringify(data));
-
-    // ❌ HANDLE API ERRORS CLEANLY
     if (data.error) {
-      console.log("❌ OpenRouter Error:", data.error);
+      console.log("AI ERROR:", data.error);
       return res.json({
         html: fallbackGame(),
-        message: "⚠️ AI error: " + data.error.message
+        message: "AI failed 😭"
       });
     }
 
     let html = data.choices?.[0]?.message?.content || "";
 
-    // clean markdown
     html = html.replace(/```html/g, "").replace(/```/g, "").trim();
 
-    // 🔧 safety fixes
     if (!html.includes("<!DOCTYPE html>")) {
       html = "<!DOCTYPE html>" + html;
     }
@@ -78,16 +70,15 @@ app.post("/generate", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("🔥 SERVER ERROR:", err);
+    console.log("SERVER ERROR:", err);
 
     res.json({
       html: fallbackGame(),
-      message: "😭 server error but I saved it"
+      message: "Server error 😭"
     });
   }
 });
 
-// 🎮 FALLBACK GAME FUNCTION
 function fallbackGame() {
   return `
 <!DOCTYPE html>
@@ -119,31 +110,8 @@ loop();
 </html>`;
 }
 
-// 🔥 RAILWAY PORT
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("🔥 PlayForge running on port " + PORT);
-});
-requestAnimationFrame(loop);
-}
-loop();
-</script>
-</body>
-</html>`;
-    }
-
-    res.json({
-        html,
-        message: html.includes("<canvas")
-            ? "🤖 I cooked up something for you!"
-            : "⚠️ AI struggled… but I saved it 😤"
-    });
-});
-
-// 🔥 RAILWAY PORT FIX
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log("🔥 PlayForge running on port " + PORT);
+  console.log("🔥 running on " + PORT);
 });
