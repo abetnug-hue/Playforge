@@ -28,11 +28,23 @@ app.post("/generate", async (req, res) => {
         "X-Title": "PlayForge"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3-8b-instruct",
+        model: "deepseek/deepseek-chat-v3:free", // 🔥 DEEPSEEK FREE
         messages: [
           {
             role: "system",
-            content: "Return ONLY a full HTML5 canvas game."
+            content: `
+You are a professional game developer.
+
+STRICT RULES:
+- Return ONLY raw HTML
+- No markdown, no explanation
+- MUST include <!DOCTYPE html>
+- MUST include a <canvas>
+- MUST include a working game loop
+- MUST include controls
+- MUST run instantly
+- No comments
+`
           },
           {
             role: "user",
@@ -54,6 +66,7 @@ app.post("/generate", async (req, res) => {
 
     let html = data.choices?.[0]?.message?.content || "";
 
+    // clean formatting
     html = html.replace(/```html/g, "").replace(/```/g, "").trim();
 
     if (!html.includes("<!DOCTYPE html>")) {
@@ -66,7 +79,7 @@ app.post("/generate", async (req, res) => {
 
     res.json({
       html,
-      message: "🤖 I cooked up something for you!"
+      message: "🤖 DeepSeek cooked something 🔥"
     });
 
   } catch (err) {
